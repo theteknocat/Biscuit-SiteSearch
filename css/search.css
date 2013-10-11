@@ -1,0 +1,50 @@
+#site-search-form {
+	position: relative;
+	overflow: visible;
+}
+
+#ajax-search-result-container {
+	position: absolute;
+	display: none;
+	border: 1px solid #666;
+	background: #fff;
+	width: 300px;
+	z-index: 50000;
+	-moz-box-shadow: 3px 5px 30px #333;
+	-webkit-box-shadow: 3px 5px 30px #333;
+}
+
+#ajax-search-results h2 {
+	margin: 0;
+	background: #bde6fe;
+	padding: 5px;
+}
+
+#ajax-search-top-hits-content .search-result a,
+#ajax-search-top-hits-content .search-result a:visited,
+#ajax-search-top-hits-content .search-result a:active,
+#ajax-search-top-hits-content .search-result a:focus {
+	display: block;
+	padding: 5px;
+	background: none;
+}
+
+#ajax-search-top-hits-content .search-result a:hover {
+	background: #93f586;
+}
+
+#ajax-search-throbber {
+	float: right;
+}
+
+#ajax-search-result-container #ajax-search-results #ajax-search-top-hits-content p.none-found {
+	margin: 20px 0;
+	text-align: center;
+	font-size: 16px;
+	color: #bbb;
+}
+
+#ajax-search-see-all-link {
+	padding: 5px;
+	text-align: center;
+}
