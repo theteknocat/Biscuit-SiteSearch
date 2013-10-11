@@ -21,7 +21,6 @@ class SiteSearch extends AbstractModuleController {
 	protected $_pagination_links_to_display = 10;
 	protected $_popup_top_hit_count = 5;
 
-	protected $_dependencies = array('Jquery');
 	/**
 	 * Root site section for searching within
 	 *
@@ -85,6 +84,16 @@ class SiteSearch extends AbstractModuleController {
 		$this->render();
 	}
 	/**
+	 * Old spider action method for backwards compatibility with Biscuit 2.1 or servers that still call this action directly via cron task scheduler
+	 *
+	 * @return void
+	 * @author Peter Epp
+	 */
+	protected function action_spider() {
+		$this->_spider();
+		Bootstrap::end_program(true);
+	}
+	/**
 	 * Attempt to use wget to spider the entire site, thereby causing page's to be cached if they aren't already and thereby indexed. This allows use of cron job
 	 * to spider and index the site by simply hitting /search/spider. If it doesn't work on your server you can setup a cron job to spider the site by some other means.
 	 *
@@ -94,10 +103,15 @@ class SiteSearch extends AbstractModuleController {
 	 * @return void
 	 * @author Peter Epp
 	 */
-	protected function action_spider() {
-		if (defined('WGET_PATH')) {
-			ob_implicit_flush();
+	protected function _spider() {
+		$wget_path = exec('which wget');
+		if (empty($wget_path) && defined('WGET_PATH') && WGET_PATH != '') {
 			$wget_path = WGET_PATH;
+		}
+		if (empty($wget_path)) {
+			Console::log("Path to wget not specified and unable to find wget with which command. Spidering will not be performed.",true);
+		} else {
+			ob_implicit_flush();
 			if (substr($wget_path,-4) != "wget") {
 				if (substr($wget_path,-1) == '/') {
 					$wget_path = substr($wget_path,0,-1);
@@ -105,10 +119,7 @@ class SiteSearch extends AbstractModuleController {
 				$wget_path .= '/wget';
 			}
 			@exec($wget_path.' --spider --recursive --force-html --directory-prefix='.SITE_ROOT.'/tmp --no-directories --quiet '.STANDARD_URL);
-		} else {
-			Console::log("Path to wget not specified, spidering will not be performed.");
 		}
-		Bootstrap::end_program(true);
 	}
 	/**
 	 * Set a view var containing search form HTML snippet whenever this module is secondary.
@@ -369,6 +380,19 @@ class SiteSearch extends AbstractModuleController {
 		return trim($text);
 	}
 	/**
+	 * Return list of all models if this module is primary, otherwise an empty array since none of the models for this module affect content when it's secondary
+	 *
+	 * @return void
+	 * @author Peter Epp
+	 */
+	public function models_affecting_content() {
+		if ($this->is_primary()) {
+			return $this->_models;
+		} else {
+			return array();
+		}
+	}
+	/**
 	 * Run migrations required for module to be installed properly
 	 *
 	 * @return void
@@ -407,6 +431,7 @@ class SiteSearch extends AbstractModuleController {
 			// Add SiteSearch to all pages as secondary:
 			DB::insert("INSERT INTO `module_pages` SET `module_id` = {$module_id}, `page_name` = '*', `is_primary` = 0");
 		}
+		DB::query("INSERT INTO `system_settings` SET `constant_name` = 'WGET_PATH', `friendly_name` = 'Path to WGET', `description` = 'WGET is required on the server for indexing the site. It is normally installed in /usr/bin, but that may not be the case on all systems. Please enter the full path to wget from the system root.', `value` = '/usr/bin/wget', `required` = 1, `group_name` = 'Site Search'");
 	}
 	/**
 	 * Run migrations to properly uninstall the module
@@ -420,6 +445,7 @@ class SiteSearch extends AbstractModuleController {
 		DB::query("DELETE FROM `module_pages` WHERE `module_id` = ".$module_id);
 		DB::query("DROP TABLE IF EXISTS `word_index`");
 		DB::query("DROP TABLE IF EXISTS `content_index`");
+		DB::query("DELETE FROM `system_settings` WHERE `constant_name` = 'WGET_PATH'");
 	}
 	/**
 	 * When caching of the page occurs, index the content
@@ -457,6 +483,19 @@ class SiteSearch extends AbstractModuleController {
 	 */
 	protected function act_on_successful_delete($model, $url) {
 		$this->ContentIndex->delete_by_url($url);
+	}
+	/**
+	 * Spider the site every day at midnight
+	 *
+	 * @return void
+	 * @author Peter Epp
+	 */
+	protected function act_on_cron_run() {
+		$time = date('H:i');
+		if ($time == '00:00') {
+			Cron::add_message("Spidering site");
+			$this->_spider();
+		}
 	}
 	/**
 	 * Provide special rewrite rule for the spider action

@@ -6,6 +6,20 @@
  * @author Peter Epp
  */
 class ContentIndex extends AbstractModel {
+	protected $_other_attributes = array(
+		'num_words_matched' => array(
+			'value'       => '',
+			'default'     => '',
+			'type'        => '',
+			'is_required' => false
+		),
+		'total_matches' => array(
+			'value'       => '',
+			'default'     => '',
+			'type'        => '',
+			'is_required' => false
+		)
+	);
 	/**
 	 * Output text snippets from $full_text_content with keywords highlighted
 	 *

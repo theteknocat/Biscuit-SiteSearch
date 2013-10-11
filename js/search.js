@@ -45,19 +45,13 @@ AjaxSearch = {
 		} else {
 			var search_root = '/';
 		}
-		jQuery.ajax({
-			url: '/search?search='+escape(keywords)+'&search_root='+search_root,
-			beforeSend: function(xhr) {
-				xhr.setRequestHeader('X-Biscuit-Ajax-Request', 'true');
-				xhr.setRequestHeader('X-Biscuit-Request-Type', 'update');
-			},
+		Biscuit.Ajax.Request('/search?search='+escape(keywords)+'&search_root='+search_root,'update',{
 			success: function(html) {
 				Biscuit.Crumbs.HideThrobber('ajax-search-throbber');
 				jQuery('#ajax-search-result-container #ajax-search-top-hits-content').html(html);
 				AjaxSearch.last_search_term = keywords;
 			}
 		});
-		jQuery('#ajax-search-result-container').load();
 	},
 	show_popup: function(html) {
 		if (this.popup_left_offset == null) {
