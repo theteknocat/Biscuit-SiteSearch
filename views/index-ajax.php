@@ -8,9 +8,6 @@ if ($result_count > 0) {
 	foreach ($search_results as $search_result) {
 	?>
 	<div class="search-result <?php echo $Navigation->tiger_stripe('search_results') ?>">
-	<?php
-	$item_render_start_time = microtime(true);
-	?>
 		<a href="<?php echo $search_result->url() ?>" title="<?php echo STANDARD_URL.$search_result->url() ?>"><?php echo $search_result->title() ?></a>
 	</div>
 	<?php
@@ -18,4 +15,3 @@ if ($result_count > 0) {
 } else {
 	?><p class="none-found">No Results</p><?php
 }
-?>

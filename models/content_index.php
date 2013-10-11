@@ -3,7 +3,9 @@
  * Model the content index table which stores the plain text content of pages
  *
  * @package Modules
+ * @subpackage SiteSearch
  * @author Peter Epp
+ * @version $Id: content_index.php 13843 2011-07-27 19:45:49Z teknocat $
  */
 class ContentIndex extends AbstractModel {
 	protected $_other_attributes = array(

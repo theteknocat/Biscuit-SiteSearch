@@ -3,7 +3,9 @@
  * Special factory for the ContentIndex model with find_by_keywords search method
  *
  * @package Modules
+ * @subpackage SiteSearch
  * @author Peter Epp
+ * @version $Id: content_index_factory.php 13843 2011-07-27 19:45:49Z teknocat $
  */
 class ContentIndexFactory extends ModelFactory {
 	/**

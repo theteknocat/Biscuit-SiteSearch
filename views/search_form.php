@@ -4,10 +4,10 @@
 		?><input id="search-root-field" type="hidden" name="search_root" value="<?php echo $search_root ?>"><?php
 	}
 	?>
-	<p style="text-align: center"><input autocomplete="off" id="search-keywords-field" type="text" class="text" name="search" value="<?php echo $original_keywords ?>"> <input type="submit" class="SubmitButton" name="sbtn" value="Search"></p>
+	<p style="text-align: center"><input id="search-keywords-field" type="text" class="text search-field" name="search" value="<?php echo $original_keywords ?>"> <input type="submit" class="SubmitButton" value="<?php echo __('Search'); ?>"></p>
 	<div id="ajax-search-result-container">
 		<div id="ajax-search-results">
-			<h2><img id="ajax-search-throbber" src="/modules/site_search/images/top-hits-throbber.gif">Top <?php echo $top_hit_count ?> Hits</h2>
+			<h4><img id="ajax-search-throbber" src="/modules/site_search/images/top-hits-throbber.gif"><?php echo sprintf(__('Top %d Hits'), (int)$top_hit_count) ?></h4>
 			<div id="ajax-search-top-hits-content"></div>
 		</div>
 	</div>

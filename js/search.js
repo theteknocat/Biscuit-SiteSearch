@@ -55,19 +55,25 @@ AjaxSearch = {
 	},
 	show_popup: function(html) {
 		if (this.popup_left_offset == null) {
+			Biscuit.Console.log("Calculate left pos for ajax result popup");
 			// Set the position of the popup to line up with the left of the search form field, unless that causes it to stick out over
 			// the edge of the top-most container div in the body, in which case we'll pull it in by the difference between right offsets.
 			var popup_box_left_pos = null;
 			var keywords_field_left_pos = parseInt(jQuery('#search-keywords-field').position().left);
+			Biscuit.Console.log("Keywords field left pos: "+keywords_field_left_pos);
 			var keywords_field_left_offset = parseInt(jQuery('#search-keywords-field').offset().left);
-			var main_container_right = parseInt(jQuery('body > div').offset().left)+parseInt(jQuery('body > div').css('width'));
+			Biscuit.Console.log("Keywords field left offset: "+keywords_field_left_offset);
+			var main_container_right = parseInt(jQuery('body > div:first').offset().left)+parseInt(jQuery('body > div').css('width'));
 			var popup_box_right = keywords_field_left_offset+300;
 			if (popup_box_right > main_container_right) {
 				var offset_difference = popup_box_right-main_container_right;
+				Biscuit.Console.log("Right edge of ajax popup ("+popup_box_right+") is greater than the right edge ("+main_container_right+")");
 				popup_box_left_pos = keywords_field_left_pos-offset_difference-5;
 			} else {
+				Biscuit.Console.log("Right edge of ajax popup is within page container");
 				popup_box_left_pos = keywords_field_left_pos;
 			}
+			Biscuit.Console.log('Popup box left position: '+popup_box_left_pos);
 			this.popup_left_pos = popup_box_left_pos;
 		}
 		jQuery('#ajax-search-result-container').css({'left': this.popup_left_pos+'px'});

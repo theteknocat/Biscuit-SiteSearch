@@ -5,10 +5,11 @@ require_once('vendor/simple_html_dom/simple_html_dom.php');
  * Module for performing internal indexing and searching of the website
  *
  * @package Modules
+ * @subpackage SiteSearch
  * @author Peter Epp
  * @copyright Copyright (c) 2009 Peter Epp (http://teknocat.org)
  * @license GNU Lesser General Public License (http://www.gnu.org/licenses/lgpl.html)
- * @version 2.0
+ * @version 2.0 $Id: controller.php 14453 2011-12-21 16:32:44Z teknocat $
  */
 class SiteSearch extends AbstractModuleController {
 	protected $_models = array(
@@ -66,10 +67,10 @@ class SiteSearch extends AbstractModuleController {
 			if (defined('PAGINATION_NEXT_MARKER')) {
 				$this->_pagination_next_marker = PAGINATION_NEXT_MARKER;
 			}
-			if (defined('SEARCH_POPUP_TOP_HIT_COUNT') && SEARCH_POPUP_TOP_HIT_COUNT > 0) {
+			if (defined('SEARCH_POPUP_TOP_HIT_COUNT') && (int)SEARCH_POPUP_TOP_HIT_COUNT > 0) {
 				$this->_popup_top_hit_count = SEARCH_POPUP_TOP_HIT_COUNT;
 			}
-			if (defined('SEARCH_PAGINATION_LINKS_TO_DISPLAY')) {
+			if (defined('SEARCH_PAGINATION_LINKS_TO_DISPLAY') && (int)SEARCH_PAGINATION_LINKS_TO_DISPLAY > 0) {
 				$this->_pagination_links_to_display = SEARCH_PAGINATION_LINKS_TO_DISPLAY;
 			}
 			$search_results = $this->do_search();
@@ -111,6 +112,8 @@ class SiteSearch extends AbstractModuleController {
 		if (empty($wget_path)) {
 			Console::log("Path to wget not specified and unable to find wget with which command. Spidering will not be performed.",true);
 		} else {
+			// Allow up to 15 minutes for spidering
+			set_time_limit(900);
 			ob_implicit_flush();
 			if (substr($wget_path,-4) != "wget") {
 				if (substr($wget_path,-1) == '/') {
@@ -118,7 +121,7 @@ class SiteSearch extends AbstractModuleController {
 				}
 				$wget_path .= '/wget';
 			}
-			@exec($wget_path.' --spider --recursive --force-html --directory-prefix='.SITE_ROOT.'/tmp --no-directories --quiet '.STANDARD_URL);
+			@exec($wget_path.' --spider --recursive --force-html --directory-prefix='.SITE_ROOT.'/var/tmp --no-directories --quiet '.STANDARD_URL);
 		}
 	}
 	/**
@@ -221,7 +224,7 @@ class SiteSearch extends AbstractModuleController {
 		$page = $this->Biscuit->Page;
 		if ($this->can_index_request($page)) {
 			Console::log("Site Search is indexing current request: ".Request::uri());
-			$html = file_get_html($page->cache_file());
+			$html = str_get_html($this->Biscuit->get_compiled_content());
 			$indexable_content = $html->find('div.indexable-content',0);
 			if (empty($indexable_content)) {
 				trigger_error("Unable to index content for ".Request::uri().": Page does not contain an element with a class of 'indexable-content'", E_USER_WARNING);
@@ -229,9 +232,15 @@ class SiteSearch extends AbstractModuleController {
 			}
 			$raw_text_content = $this->extract_text_content($indexable_content);
 			$raw_text_content = preg_replace('/[\r\n\t]+/',' ',trim($raw_text_content));
+			if ($page->has_navigation_label() && $page->navigation_label()) {
+				$search_result_title = $page->navigation_label();
+				$raw_text_content = $page->title()." ".$raw_text_content;
+			} else {
+				$search_result_title = $page->title();
+			}
 			$alt_text         = $this->extract_alt_text($html);
 			$cleaned_content  = $this->cleanup_text($raw_text_content);
-			$title            = $this->cleanup_text($page->title());
+			$title            = $this->cleanup_text($search_result_title);
 			$keywords         = $page->keywords();
 			if (!empty($keywords)) {
 				$keywords = str_replace(',',' ',$keywords);
@@ -252,7 +261,7 @@ class SiteSearch extends AbstractModuleController {
 			}
 			$content_index_data = array(
 				'url'                  => $request_uri,
-				'title'                => $page->title(),
+				'title'                => $search_result_title,
 				'full_text_content'    => $raw_text_content
 			);
 			$content_index = $this->ContentIndex->find_by('url',$request_uri);
@@ -272,7 +281,7 @@ class SiteSearch extends AbstractModuleController {
 		}
 	}
 	/**
-	 * Recursively walk through all nodes of an HTML DOM object and return a concatenated plain text string
+	 * Walk through all text block elements in an HTML dom object and fetch the plain text content from them
 	 *
 	 * @param string $html_dom_object 
 	 * @return void
@@ -431,7 +440,10 @@ class SiteSearch extends AbstractModuleController {
 			// Add SiteSearch to all pages as secondary:
 			DB::insert("INSERT INTO `module_pages` SET `module_id` = {$module_id}, `page_name` = '*', `is_primary` = 0");
 		}
-		DB::query("INSERT INTO `system_settings` SET `constant_name` = 'WGET_PATH', `friendly_name` = 'Path to WGET', `description` = 'WGET is required on the server for indexing the site. It is normally installed in /usr/bin, but that may not be the case on all systems. Please enter the full path to wget from the system root.', `value` = '/usr/bin/wget', `required` = 1, `group_name` = 'Site Search'");
+		DB::query("REPLACE INTO `system_settings` (`constant_name`, `friendly_name`, `description`, `value`, `required`, `group_name`) VALUES
+		 ('WGET_PATH', 'Path to WGET', 'WGET is required on the server for indexing the site. It is normally installed in /usr/bin, but that may not be the case on all systems. Please enter the full path to wget from the system root.', '/usr/bin/wget', 1, 'Site Search'),
+		 ('SEARCH_PAGINATION_LINKS_TO_DISPLAY', 'Search Result Pagination Links', 'Number of pagination links to display in search results. Defaults to 10 if left blank.', '', 0, 'Site Search'),
+		 ('SEARCH_POPUP_TOP_HIT_COUNT', 'Top Hits Max Count', 'Max number of top hits to display in the live search popup. Defaults to 5 if left blank.', '', 0, 'Site Search')");
 	}
 	/**
 	 * Run migrations to properly uninstall the module
@@ -453,7 +465,7 @@ class SiteSearch extends AbstractModuleController {
 	 * @return void
 	 * @author Peter Epp
 	 */
-	protected function act_on_page_cached() {
+	protected function act_on_content_compiled() {
 		if (!$this->is_primary()) {
 			Event::fire('search_indexing_page');
 			$this->index_page();
@@ -491,24 +503,18 @@ class SiteSearch extends AbstractModuleController {
 	 * @author Peter Epp
 	 */
 	protected function act_on_cron_run() {
-		$time = date('H:i');
-		if ($time == '00:00') {
-			Cron::add_message("Spidering site");
-			$this->_spider();
-		}
+		Cron::add_message($this, "Spidering site");
+		$this->_spider();
 	}
 	/**
-	 * Provide special rewrite rule for the spider action
+	 * Provide URI mapping rule for the spider action
 	 *
 	 * @return array
 	 * @author Peter Epp
 	 */
-	public static function rewrite_rules() {
+	public static function uri_mapping_rules() {
 		return array(
-			array(
-				'pattern' => '/^search\/spider$/',
-				'replacement' => 'page_slug=search&action=spider'
-			)
+			'/^(?P<page_slug>search)\/(?P<action>spider)$/'
 		);
 	}
 }

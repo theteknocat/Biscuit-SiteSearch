@@ -1,0 +1,3 @@
+name = "SiteSearch"
+description = "Internal site search engine. Requires wget installed on server and executable by PHP for spidering."
+version = "2.2"

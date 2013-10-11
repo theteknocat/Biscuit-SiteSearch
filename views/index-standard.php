@@ -2,7 +2,7 @@
 require_once('site_search/views/search_form.php');
 if (!empty($search_summary)) {
 	?>
-<h2 id="search-summary"><?php echo $search_summary ?></h2>
+<h3 id="search-summary"><?php echo $search_summary ?></h3>
 	<?php
 }
 if ($result_count > 0) {
@@ -15,21 +15,22 @@ if ($result_count > 0) {
 		<?php
 	}
 	foreach ($search_results as $search_result) {
-		$synopsis = $search_result->synopsis($stemmed_keywords);
-		?>
-	<div class="search-result <?php echo $Navigation->tiger_stripe('search_results') ?>">
+		?><div class="search-result <?php echo $Navigation->tiger_stripe('search_results') ?>"><?php
+		$fcache = new FragmentCache('ContentIndex',$search_result->id());
+		if ($fcache->start('regular-search-result')) {
+			$synopsis = $search_result->synopsis($stemmed_keywords);
+			?>
+		<h4><a href="<?php echo $search_result->url() ?>"><?php echo $search_result->highlight_text($search_result->title(), $stemmed_keywords) ?></a></h4>
 		<?php
-		$item_render_start_time = microtime(true);
-		?>
-		<h2><a href="<?php echo $search_result->url() ?>"><?php echo $search_result->highlight_text($search_result->title(), $stemmed_keywords) ?></a></h2>
-		<?php
-		if (!empty($synopsis)) {
-			?><p><?php echo $synopsis ?></p><?php
-		}
+			if (!empty($synopsis)) {
+				?><p><?php echo $synopsis ?></p><?php
+			}
 		?>
 		<p class="small"><a href="<?php echo $search_result->url() ?>"><?php echo STANDARD_URL.$search_result->url() ?></a></p>
-	</div>
 		<?php
+			$fcache->end('regular-search-result');
+		}
+		?></div><?php
 	}
 	if ($paginator->GetPageCount() > 1) {
 		?>
@@ -41,4 +42,3 @@ if ($result_count > 0) {
 </div>
 	<?php
 }
-?>
